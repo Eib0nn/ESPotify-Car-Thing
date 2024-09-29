@@ -29,12 +29,11 @@ String TrackUrl;
 String TrackName;
 String TrackAuth;
 
-void getToken(String sp_dc) {
+/*void getToken(String sp_dc) {
   //cookies = {
   //  'sp_dc'=
   //}
   httpCom.begin("https://open.spotify.com/?flow_ctx=f4e6b37c-41ed-4426-8a3e-d326734ed463%3A1714702154");
-  //httpCom.begin("https://webhook.site/0ad68006-754e-448e-badd-bef59ec81ed4");
   httpCom.addHeader("Cookie", "sp_dc=" + String(sp_dc));
   httpCom.setUserAgent("Chrome/129.0.0.0");
   
@@ -59,6 +58,34 @@ void getToken(String sp_dc) {
   //Serial.println("");
   //Serial.println(response);
   httpCom.end();
+}*/
+
+void getToken(String sp_dc) {
+    httpCom.begin("https://open.spotify.com/get_access_token?reason=transport&productType=web-player");
+
+    httpCom.addHeader("Cookie", "sp_dc=" + String(sp_dc));
+    int response = httpCom.GET();
+
+    if (response > 0) {
+        String payload = httpCom.getString();
+        //Serial.println(payload);
+        int tokenIndex = payload.indexOf("accessToken");
+
+        if ((payload.substring(tokenIndex + 350, tokenIndex + 351)) == "\"") {
+            strcpy(Token, "Bearer ");
+            strcat(Token, payload.substring(tokenIndex + 14, tokenIndex + 350).c_str());
+            Serial.println(Token);
+        }
+        else {
+            Serial.println("Token Failed");
+
+        }
+        //Serial.println(payload.substring(tokenIndex + 14, tokenIndex + 14 + 320).c_str());
+    }
+
+    //Serial.println("");
+    //Serial.println(response);
+    httpCom.end();
 }
 
 
@@ -101,7 +128,6 @@ int sendCommand(String endpoint,String value) {
   //String more=getPlaybackState()["device"]["id"];
   //String more="852daaa6057fd8a361934bfc133655332676f7c2";
   url+=Device;
-  //url="https://webhook.site/1ce687ca-04aa-4c0e-9ca5-be28c8c69023";
   //Serial.println("SetUrl");
   //Serial.println(url);
   httpCom.begin(url);

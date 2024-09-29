@@ -33,7 +33,6 @@ int WifiLook;
 int Tab;
 
 
-//build_flags = -DCORE_DEBUG_LEVEL=5
 
 
 bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap) {
@@ -510,7 +509,6 @@ void setup() {
   http.setReuse(true);
   getToken(SP_DC);
   tft.fillScreen(Color);
-  //strcpy(Token,"Bearer BQDhDPqWfRi7m3WkGE1NLKkNjO-36zyVpzO_KMAUZ_wofCKEW1uxmJdrQEG0OlCePqJgIGkMwBD9T7ppKnNLxMgdyn2yACr1wa9fiV2iTlopcCdM4Xj7kFWf_gZWLS36hbs2kh_1gfE3yVEl040tAm8iic35b9nQxE_pkP2fXWqfqJXEfgWE9xAl4Zlne3DopWV_Q3cZ0jb-Q6EUgVXWRVvIMmKdcv3QPAlNPMVgoY1EHcidkaw86L3U0ehk9ErbZDQFN5Q-usywCcp93oAQ9ALgMW73spwU6-OUupf9KBonDPyDwlFRY3hJLrUml6_H");
   JSONVar play = getPlaybackState();
   while (((int) play["is_playing"])==2) {
     tft.setTextSize(2);
