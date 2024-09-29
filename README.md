@@ -65,4 +65,5 @@ TOUCH_DO 19
 - [ ] Add a way to connect to other networks (without having to re-upload the code to the ESP)
 - [ ] Match playstate/shuffle/loop/volume when changing it from the web-player/app
 - [ ] Find the cause of the crashes that can happen when searching/opening info page (probably a memory leak)
+- [ ] Clean up code and comments
 - [ ] Login with Username+Pass instead of cookie (avoids it resetting every once in a while) (?)
