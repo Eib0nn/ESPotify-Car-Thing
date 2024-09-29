@@ -1,0 +1,20 @@
+{
+  "name":"SpotifyCusstom",
+  "description":"A library to wrap the Spotify API (ESP32)",
+  "keywords":"Spotify,Music,Arduino",
+  "authors":
+  {
+    "name": "JESS2005",
+    "maintainer": true
+  },
+  "version": "0.0.1",
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": "*",
+  "dependencies": [
+    {
+    }
+  ],
+  "build": {
+  }
+}
