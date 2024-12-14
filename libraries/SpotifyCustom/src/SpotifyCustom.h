@@ -16,7 +16,8 @@ SpotifyArduino - An Arduino library to wrap the Spotify API
 static HTTPClient httpCom;
 
 
-char Token[346];
+//char Token[346];
+String Token;
 String Device;
 boolean Shuffle;
 boolean Playing;
@@ -29,41 +30,14 @@ String TrackUrl;
 String TrackName;
 String TrackAuth;
 
-/*void getToken(String sp_dc) {
-  //cookies = {
-  //  'sp_dc'=
-  //}
-  httpCom.begin("https://open.spotify.com/?flow_ctx=f4e6b37c-41ed-4426-8a3e-d326734ed463%3A1714702154");
-  httpCom.addHeader("Cookie", "sp_dc=" + String(sp_dc));
-  httpCom.setUserAgent("Chrome/129.0.0.0");
-  
-  int response = httpCom.GET();
-  
-  if (response>0) {
-    String payload = httpCom.getString();
-    //Serial.println(payload);
-    int tokenIndex = payload.indexOf("accessToken");
 
-    if ((payload.substring(tokenIndex+15,tokenIndex+16))!=">") {
-      strcpy(Token,"Bearer ");
-      strcat(Token,payload.substring(tokenIndex + 14, tokenIndex + 14 + 320+16).c_str());
-      Serial.println(Token);
-    } else {
-      Serial.println("Token Failed");
 
-    }
-    //Serial.println(payload.substring(tokenIndex + 14, tokenIndex + 14 + 320).c_str());
-  }
-
-  //Serial.println("");
-  //Serial.println(response);
-  httpCom.end();
-}*/
-
-void getToken(String sp_dc) {
+/*void getTokenOld(String sp_dc) {
     httpCom.begin("https://open.spotify.com/get_access_token?reason=transport&productType=web-player");
 
     httpCom.addHeader("Cookie", "sp_dc=" + String(sp_dc));
+    httpCom.addHeader("cache-control", "max-age=0");
+    httpCom.addHeader("user-agent", "ESP32HTTPClient");
     int response = httpCom.GET();
 
     if (response > 0) {
@@ -74,6 +48,32 @@ void getToken(String sp_dc) {
         if ((payload.substring(tokenIndex + 350, tokenIndex + 351)) == "\"") {
             strcpy(Token, "Bearer ");
             strcat(Token, payload.substring(tokenIndex + 14, tokenIndex + 350).c_str());
+            Serial.println(Token);
+        }
+        else {
+            Serial.println("Token Failed");
+
+        }
+        //Serial.println(payload.substring(tokenIndex + 14, tokenIndex + 14 + 320).c_str());
+    }
+
+    //Serial.println("");
+    //Serial.println(response);
+    httpCom.end();
+}*/
+
+void getToken(String sp_dc) {
+    httpCom.begin("https://open.spotify.com/get_access_token?reason=transport&productType=web-player");
+
+    httpCom.addHeader("Cookie", "sp_dc=" + String(sp_dc));
+    int response = httpCom.GET();
+
+    if (response > 0) {
+        JSONVar responseJson = JSON.parse(httpCom.getString());
+
+        if (JSON.typeof(responseJson) != "undefined") {
+            Token ="Bearer "+ String((const char*)responseJson["accessToken"]);
+
             Serial.println(Token);
         }
         else {
@@ -299,13 +299,13 @@ bool isSaved(String id) {
     String response = httpCom.getString();
     httpCom.end();
     // Convert response to boolean
-    if (response == "[ true ]") {
+    if (response == "[true]") {
       return true;
     } else {
       return false;
     }
   } else {
-    httpCom.end();
+    return false;
   }
 }
 

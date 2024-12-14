@@ -218,48 +218,45 @@ void addResults() {
     //Serial.println(N);
     //Link
     //Serial.println(res.substring(N+23,res.indexOf(",",N+3)-1));
-    String Sh=res.substring(N+23,res.indexOf(",",N+3)-1);
+    String Sh=res.substring(N+21,res.indexOf(",",N+20)-3);
 
     N=res.indexOf("name",N+2);
     //Album
     //Serial.println(res.substring(N+9,res.indexOf(",",N)-1));
-    tft.drawString(res.substring(N+9,res.indexOf(",",N)-1)+"                            ", 70, 24+66*i, 2);
+    tft.drawString(res.substring(N+7,res.indexOf(",",N)-1)+"                            ", 70, 24+66*i, 2);
     N=res.indexOf("name",N+2);
     //Artist
     //Serial.println(res.substring(N+9,res.indexOf(",",N)-1));
-    tft.drawString(res.substring(N+9,res.indexOf(",",N)-1)+"                            ", 70, 44+66*i, 2);
+    tft.drawString(res.substring(N+7,res.indexOf(",",N)-1)+"                            ", 70, 44+66*i, 2);
     N=res.indexOf("market",N+2);
     N=res.indexOf("id",N+2);
     N=res.indexOf("id",N+2);
     //Id
     //Serial.println(res.substring(N+7,res.indexOf(",",N)-1));
-    String IdTemp=res.substring(N+7,res.indexOf(",",N)-1);
-    Serial.println(IdTemp);
+    String IdTemp=res.substring(N+5,res.indexOf(",",N)-1);
     if (i) {
       if (IdTemp!=Id1Sh) {
-        SPIFFS.remove("/albumArtS1.jpg");
         getFile(Sh, "/albumArtS1.jpg");
         TJpgDec.drawFsJpg(3, 66, "/albumArtS1.jpg");
+        SPIFFS.remove("/albumArtS1.jpg");
         Id1Sh=IdTemp;
       } 
     } else {
       if (IdTemp!=Id0Sh) {
-        SPIFFS.remove("/albumArtS0.jpg");
         getFile(Sh, "/albumArtS0.jpg");
         TJpgDec.drawFsJpg(3, 0, "/albumArtS0.jpg");
+        SPIFFS.remove("/albumArtS0.jpg");
         Id0Sh=IdTemp;
       } 
     }
     N=res.indexOf("name",N+2);
     //Song
     //Serial.println(res.substring(N+9,res.indexOf(",",N)-1));
-    tft.drawString(res.substring(N+9,res.indexOf(",",N)-1)+"                            ", 70, 4+66*i, 2);
-
+    tft.drawString(res.substring(N+7,res.indexOf(",",N)-1)+"                            ", 70, 4+66*i, 2);
 
     tft.setTextSize(3);
     tft.drawString("+", 298, 23+66*i, 1);
     tft.setTextSize(1);
-
     TJpgDec.drawFsJpg(298, 6+66*i, "/PlayImg.jpg");
     if (isSaved(IdTemp)) {
       //tft.pushImage(22, 134, 16, 16, SavedImg);
@@ -268,6 +265,7 @@ void addResults() {
       //tft.pushImage(22, 134, 16, 16, NotSavedImg);
       TJpgDec.drawFsJpg(298, 46+66*i, "/NotSavedImg.jpg");
     }
+
   }
 }
 
@@ -474,8 +472,9 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("starting");
-
-
+  tft.fillScreen(Color);
+  tft.setTextSize(2);
+  tft.drawString("Connecting to Wi-Fi",42,104,2);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
