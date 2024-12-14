@@ -1,6 +1,10 @@
 # ESPotify-Car-Thing
 A version of the Spotify car thing made to run on ESP32 with a TFT display.
 
+If you just stumbled here, here is a showcase   
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/OmogXsvLvr0/0.jpg)](https://www.youtube.com/watch?v=OmogXsvLvr0)
+
+Discord for bug reports and questions found [here](https://discord.gg/Pjm5BpPKr7)
 # Requirements
 An ESP32  
 A TFT display (with touch, the code is made for 240x320 with an ILI9341, other sizes will need some code change, untested with other drivers)  
