@@ -196,6 +196,9 @@ JSONVar searchItem(String name,int offset) {
     //Serial.println(doc);
 
     return payload;
+  } else {
+	  httpCom.end();
+	  return JSONVar();
   }
 }
 
@@ -325,6 +328,7 @@ JSONVar getFeatures(String id) {
     return doc;
   } else {
     httpCom.end();
+    return JSONVar();
   }
 }
 
@@ -344,6 +348,7 @@ JSONVar getSong(String id) {
     return doc;
   } else {
     httpCom.end();
+    return JSONVar();
   }
 }
 
@@ -392,6 +397,7 @@ String getGenre(String id) {
     return response;
   } else {
     httpCom.end();
+    return "";
   }
 }
 
