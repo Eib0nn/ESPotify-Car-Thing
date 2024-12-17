@@ -150,13 +150,15 @@ void OpenInfo() {
   tft.drawString(TrackAuth, 93, 53, 2);
   if (1) {
     JSONVar TrackDet=getSong(TrackId);
-
+    //Serial.println(TrackDet);
+    //Serial.println(ESP.getFreeHeap());
     String AlbName=TrackDet["album"]["name"];
     tft.drawString(AlbName, 93, 33, 2);
     String AlbDate=TrackDet["album"]["release_date"];
     tft.drawString((AlbDate.substring(8,10)+"/"+AlbDate.substring(5,7)+"/"+AlbDate.substring(0,4)), 93, 73, 2);
 
     String ArtId=TrackDet["artists"][0]["id"];
+    //Serial.println(ArtId);
     if (ArtId!="") {
       tft.drawString(getGenre(ArtId), 11, 216, 2);
     }
@@ -196,8 +198,8 @@ void OpenSearch() {
   }
   tft.setTextSize(1);
 }
-String Id0Sh;
-String Id1Sh;
+
+String IdSh[2];
 
 void addResults() {
   //Serial.println(OldTime);
@@ -210,7 +212,7 @@ void addResults() {
     String res=searchItem(OldTime,i);
     //String res=searchItem("i want it that way");
     //Serial.println(res);
-  
+    if (res=="Failed") break;
     int N;
     
     //Name(song,alb,auth),duration,id,imglink
@@ -223,18 +225,18 @@ void addResults() {
     N=res.indexOf("name",N+2);
     //Album
     //Serial.println(res.substring(N+9,res.indexOf(",",N)-1));
-    tft.drawString(res.substring(N+7,res.indexOf(",",N)-1)+"                            ", 70, 24+66*i, 2);
+    tft.drawString(res.substring(res.indexOf("\"",N+5)+1,res.indexOf(",",N)-1)+"                            ", 70, 24+66*i, 2);
     N=res.indexOf("name",N+2);
     //Artist
     //Serial.println(res.substring(N+9,res.indexOf(",",N)-1));
-    tft.drawString(res.substring(N+7,res.indexOf(",",N)-1)+"                            ", 70, 44+66*i, 2);
+    tft.drawString(res.substring(res.indexOf("\"",N+5)+1,res.indexOf(",",N)-1)+"                            ", 70, 44+66*i, 2);
     N=res.indexOf("market",N+2);
     N=res.indexOf("id",N+2);
     N=res.indexOf("id",N+2);
     //Id
     //Serial.println(res.substring(N+7,res.indexOf(",",N)-1));
-    String IdTemp=res.substring(N+5,res.indexOf(",",N)-1);
-    if (i) {
+    String IdTemp=res.substring(res.indexOf("\"",N+3)+1,res.indexOf(",",N)-1);
+    /*if (i) {
       if (IdTemp!=Id1Sh) {
         getFile(Sh, "/albumArtS1.jpg");
         TJpgDec.drawFsJpg(3, 66, "/albumArtS1.jpg");
@@ -248,11 +250,19 @@ void addResults() {
         SPIFFS.remove("/albumArtS0.jpg");
         Id0Sh=IdTemp;
       } 
-    }
+    }*/
+
+    if (IdTemp!=IdSh[i]) {
+      getFile(Sh, "/albumArtS.jpg");
+      TJpgDec.drawFsJpg(3, 66*i, "/albumArtS.jpg");
+      SPIFFS.remove("/albumArtS.jpg");
+      IdSh[i]=IdTemp;
+    } 
+
     N=res.indexOf("name",N+2);
     //Song
     //Serial.println(res.substring(N+9,res.indexOf(",",N)-1));
-    tft.drawString(res.substring(N+7,res.indexOf(",",N)-1)+"                            ", 70, 4+66*i, 2);
+    tft.drawString(res.substring(res.indexOf("\"",N+5)+1,res.indexOf(",",N)-1)+"                            ", 70, 4+66*i, 2);
 
     tft.setTextSize(3);
     tft.drawString("+", 298, 23+66*i, 1);
@@ -291,7 +301,7 @@ void buildUI(int VolPercent) {
     //tft.pushImage(55, 90, 16, 16, PrevImg);
     TJpgDec.drawFsJpg(55, 46, "/NextImg.jpg");
     TJpgDec.drawFsJpg(55, 90, "/PrevImg.jpg");
-    TJpgDec.drawFsJpg(282, 46, "/WiFiImg.jpg");
+    TJpgDec.drawFsJpg(282, 46, "/RadioImg.jpg");
     TJpgDec.drawFsJpg(282, 90, "/SearchImg.jpg");
     TJpgDec.drawFsJpg(282, 134, "/InfoImg.jpg");
     if (Playing) {
@@ -420,50 +430,46 @@ String convTime(int Time) {
 void codeForCore0Task(void* parameter) {
   HTTPClient httpAlt;
   for (;;) {
-    httpAlt.begin("https://api.spotify.com/v1/me/player");
-    httpAlt.addHeader("authorization", Token);
-    int response = httpAlt.GET();
-    //Serial.print(response);
-    if (response == 200) {
-      String payload = httpAlt.getString();
-      //Serial.println(payload);
-      httpAlt.end();
-      JSONVar doc = JSON.parse(payload);
-      String Tr = doc["item"]["id"];
-      //Serial.println(Tr);
-      CurrTime = doc["progress_ms"];
-      LastMillis = millis();
-      if ((Tr != TrackId) && (Tr != "")) {
-        if (1) {
-        TrackId = Tr;
-        Serial.print("New: ");
-        String TrUrl = doc["item"]["album"]["images"][1]["url"];
-        TrackUrl = TrUrl;
-        //tft.setCursor(170, 179, 2);
-        //tft.setTextDatum(1);
-        String Name = doc["item"]["name"];
-        TrackName = Name;
-        String Auth = doc["item"]["artists"][0]["name"];
-        TrackAuth = Auth;
-        SongTime = doc["item"]["duration_ms"];
-        if (0) {
-          tft.setTextDatum(BL_DATUM);
-          tft.setTextColor(TFT_WHITE, Color);
-          tft.setTextSize(2);
-          //tft.print(Name);
-          tft.drawString("         " + convTime(SongTime), 228, 67, 2);
+    try {
+      httpAlt.begin("https://api.spotify.com/v1/me/player");
+      httpAlt.addHeader("authorization", Token);
+      int response = httpAlt.GET();
+      //Serial.print(response);
+      if (response == 200) {
+        String payload = httpAlt.getString();
+        //Serial.println(payload);
+        httpAlt.end();
+        JSONVar doc = JSON.parse(payload);
+        if (JSON.typeof(doc) != "undefined") {
+          String Tr = doc["item"]["id"];
+          //Serial.println(Tr);
+          CurrTime = doc["progress_ms"];
+          LastMillis = millis();
+          if ((Tr != TrackId) && (Tr != "")) {
+            if (1) {
+            TrackId = Tr;
+            Serial.print("New: ");
+            String TrUrl = doc["item"]["album"]["images"][1]["url"];
+            TrackUrl = TrUrl;
+            Changed=true;
+
+            String Name = doc["item"]["name"];
+            TrackName = Name;
+            String Auth = doc["item"]["artists"][0]["name"];
+            TrackAuth = Auth;
+            SongTime = doc["item"]["duration_ms"];
+            }
+
+            
+          }
+          Device = String((const char*)doc["device"]["id"]);
         }
-        }
-        //getPic(TrUrl);
-        //getFile(TrUrl, "/albumArt.jpg");
-        //Serial.println(doc);
-        //songUpdate(doc);
-        
+      } else {
+        httpAlt.end();
       }
-      String dev = doc["device"]["id"];
-      Device = dev;
-    } else {
-      httpAlt.end();
+    } catch (const std::exception& e) {
+      Serial.print("Exception: ");
+      Serial.println(e.what());
     }
   }
 }
@@ -542,11 +548,13 @@ int TrackSliding=0;
 
 void loop() {
   if (Tab==0) {
-  if (TrackUrl != OldTrackUrl) {
+  //if (TrackUrl != OldTrackUrl) {
+  if (Changed) {
     String TrackNamePR = TrackName;
     TrackNamePR.replace("é", "e");
     Serial.println(TrackName);
-    OldTrackUrl = TrackUrl;
+    //
+    Changed=false;
 
     tft.setTextDatum(TC_DATUM);
     tft.setTextColor(TFT_WHITE, Color);
@@ -576,7 +584,10 @@ void loop() {
       //tft.pushImage(22, 134, 16, 16, NotSavedImg);
       TJpgDec.drawFsJpg(22, 134, "/NotSavedImg.jpg");
     }
-    getPic(TrackUrl);
+    if (TrackUrl != OldTrackUrl) {
+      getPic(TrackUrl);
+      OldTrackUrl = TrackUrl;
+    }
     //getFile("https://webhook.site/1ce687ca-04aa-4c0e-9ca5-be28c8c69023", "albumArt.jpg");
     getToken(SP_DC);
   }
@@ -629,10 +640,10 @@ void loop() {
       }
     } else if (x > 51 && x < 75 && y > 42 && y < 68 && NotTouching) {
       //Serial.print("A!");
-      sendCommand("skip_next", "0");
+      if (sendCommand("skip_next", "0")==200) TJpgDec.drawFsJpg(55, 134, "/PauseImg.jpg");
     } else if (x > 51 && x < 75 && y > 86 && y < 112 && NotTouching) {
       //Serial.print("A!");
-      sendCommand("skip_prev", "0");
+      if (sendCommand("skip_prev", "0")==200) TJpgDec.drawFsJpg(55, 134, "/PauseImg.jpg");
     } else if (x > 51 && x < 75 && y > 130 && y < 156 && NotTouching) {
       if (Playing) {
         if (sendCommand("pause", "0")==200) {
@@ -678,6 +689,11 @@ void loop() {
       TrackSliding=1;
     } else if (x > 251 && x < 263 && y > 43 && y < 153 && NotTouching) {
       TrackSliding=2;
+    } else if (x > 278 && x < 302 && y > 42 && y < 68 && NotTouching) {
+      startSong(getRadio(TrackId));
+      if (Playing) {
+        TJpgDec.drawFsJpg(55, 134, "/PauseImg.jpg");
+      }
     } else if (x > 278 && x < 302 && y > 130 && y < 156 && NotTouching) {
       Tab=1;
       tft.fillScreen(Color);
@@ -717,9 +733,9 @@ void loop() {
           OldTime+=KeyB[X];
           addResults();
         } else if (x > 295 && x < 316 && y > 3 && y < 24){
-          startSong(Id0Sh);
+          startSong("track:"+IdSh[0]);
         } else if (x > 295 && x < 316 && y > 23 && y < 44){
-          if(sendCommand("add_to_queue",Id0Sh)==200) {
+          if(sendCommand("add_to_queue",IdSh[0])==200) {
             tft.setTextColor(TFT_GREEN, Color);
             tft.setTextSize(3);
             tft.drawString("+", 298, 23, 1);
@@ -728,18 +744,18 @@ void loop() {
           }
         } else if (x > 295 && x < 316 && y > 43 && y < 64){
           if (tft.readPixel(305,53)) {
-            if (deleteTrack(Id0Sh) == 200) {
+            if (deleteTrack(IdSh[0]) == 200) {
               TJpgDec.drawFsJpg(298, 46, "/NotSavedImg.jpg");
             }
           } else {
-            if (saveTrack(Id0Sh)==200) {
+            if (saveTrack(IdSh[0])==200) {
               TJpgDec.drawFsJpg(298, 46, "/SavedImg.jpg");
             }
           }
         } else if (x > 295 && x < 316 && y > 69 && y < 90){
-          startSong(Id1Sh);
+          startSong("track:"+IdSh[1]);
         } else if (x > 295 && x < 316 && y > 89 && y < 110){
-          if(sendCommand("add_to_queue",Id1Sh)==200) {
+          if(sendCommand("add_to_queue",IdSh[1])==200) {
             tft.setTextColor(TFT_GREEN, Color);
             tft.setTextSize(3);
             tft.drawString("+", 298, 89, 1);
@@ -748,11 +764,11 @@ void loop() {
           }
         } else if (x > 295 && x < 316 && y > 109 && y < 130){
           if (tft.readPixel(305,119)) {
-            if (deleteTrack(Id1Sh) == 200) {
+            if (deleteTrack(IdSh[1]) == 200) {
               TJpgDec.drawFsJpg(298, 112, "/NotSavedImg.jpg");
             }
           } else {
-            if (saveTrack(Id1Sh)==200) {
+            if (saveTrack(IdSh[1])==200) {
               TJpgDec.drawFsJpg(298, 112, "/SavedImg.jpg");
             }
           }

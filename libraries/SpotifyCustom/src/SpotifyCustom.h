@@ -26,41 +26,12 @@ int Loop;
 //String Playback;
 String TrackId;
 String OldTrackUrl;
+bool Changed;
 String TrackUrl;
 String TrackName;
 String TrackAuth;
 
 
-
-/*void getTokenOld(String sp_dc) {
-    httpCom.begin("https://open.spotify.com/get_access_token?reason=transport&productType=web-player");
-
-    httpCom.addHeader("Cookie", "sp_dc=" + String(sp_dc));
-    httpCom.addHeader("cache-control", "max-age=0");
-    httpCom.addHeader("user-agent", "ESP32HTTPClient");
-    int response = httpCom.GET();
-
-    if (response > 0) {
-        String payload = httpCom.getString();
-        //Serial.println(payload);
-        int tokenIndex = payload.indexOf("accessToken");
-
-        if ((payload.substring(tokenIndex + 350, tokenIndex + 351)) == "\"") {
-            strcpy(Token, "Bearer ");
-            strcat(Token, payload.substring(tokenIndex + 14, tokenIndex + 350).c_str());
-            Serial.println(Token);
-        }
-        else {
-            Serial.println("Token Failed");
-
-        }
-        //Serial.println(payload.substring(tokenIndex + 14, tokenIndex + 14 + 320).c_str());
-    }
-
-    //Serial.println("");
-    //Serial.println(response);
-    httpCom.end();
-}*/
 
 void getToken(String sp_dc) {
     httpCom.begin("https://open.spotify.com/get_access_token?reason=transport&productType=web-player");
@@ -123,7 +94,7 @@ int sendCommand(String endpoint,String value) {
   }
 
 
-  Serial.println(endpoint);
+  Serial.print(endpoint+": ");
   String url="https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/1234567890123456789012345678901234567890/to/";
   //String more=getPlaybackState()["device"]["id"];
   //String more="852daaa6057fd8a361934bfc133655332676f7c2";
@@ -155,7 +126,7 @@ int sendCommand(String endpoint,String value) {
   if (httpResponseCode==200) {
     if (endpoint=="pause") {
       Playing=false;
-    } else if (endpoint=="resume") {
+    } else if (endpoint=="resume"||endpoint=="skip_next"||endpoint=="skip_prev") {
       Playing=true;
     }else if (endpoint=="set_shuffling_context") {
       if (value=="true") {
@@ -168,13 +139,13 @@ int sendCommand(String endpoint,String value) {
     }
   }
   String payload = httpCom.getString();
-  Serial.println(payload);
+  //Serial.println(payload);
   httpCom.end();
   return httpResponseCode;
 }
 
 
-JSONVar searchItem(String name,int offset) {
+String searchItem(String name,int offset) {
   String url="https://api.spotify.com/v1/search?q=";
   name.replace(" ", "+");
   url+=name;
@@ -187,16 +158,13 @@ JSONVar searchItem(String name,int offset) {
   Serial.println(response);
   if (response==200) {
     String payload = httpCom.getString();
-    //Serial.println(payload);
     httpCom.end();
-
     payload=payload.substring(payload.indexOf("["),payload.lastIndexOf("]")+1);
-    //Serial.println(payload);
-    //JSONVar doc = JSON.parse(payload);
-    //Serial.println(doc);
 
     return payload;
   }
+  httpCom.end();
+  return "Failed";
 }
 
 int saveTrack(String track) {
@@ -242,13 +210,28 @@ int deleteTrack(String track) {
   return response;
 }
 
+String getRadio(String track) {
+    String url= "https://spclient.wg.spotify.com/inspiredby-mix/v2/seed_to_playlist/spotify:track:"+track;
+    httpCom.begin(url);
+    httpCom.addHeader("authorization", Token);
+    int responseCode = httpCom.GET();
+    if (responseCode==200){
+      String payload = httpCom.getString();
+      payload=payload.substring(payload.indexOf("tify:")+5);
+      httpCom.end();
+      return payload;
+    }
+    httpCom.end();
+    return "Failed";
+}
+
 void startSong(String id) {
 
     String url = "https://gew4-spclient.spotify.com/connect-state/v1/player/command/from/f59e9112b62e37a5782a2372cb74f8fee1e2a0ed/to/";
     url+=Device;
     httpCom.begin(url);
   
-    String payload = "{\"command\":{\"context\":{\"url\":\"context://spotify:track:" + id + "\"},\"endpoint\":\"play\"}}";
+    String payload = "{\"command\":{\"context\":{\"url\":\"context://spotify:" + id + "\"},\"endpoint\":\"play\"}}";
     
     httpCom.addHeader("authorization", Token);
     httpCom.addHeader("Content-Type", "application/json");
@@ -301,12 +284,9 @@ bool isSaved(String id) {
     // Convert response to boolean
     if (response == "[true]") {
       return true;
-    } else {
-      return false;
     }
-  } else {
-    return false;
   }
+  return false;
 }
 
 JSONVar getFeatures(String id) {
@@ -323,9 +303,9 @@ JSONVar getFeatures(String id) {
     JSONVar doc = JSON.parse(response);
     httpCom.end();
     return doc;
-  } else {
-    httpCom.end();
   }
+  httpCom.end();
+  return JSONVar();
 }
 
 JSONVar getSong(String id) {
@@ -342,9 +322,9 @@ JSONVar getSong(String id) {
     JSONVar doc = JSON.parse(response);
     httpCom.end();
     return doc;
-  } else {
-    httpCom.end();
   }
+  httpCom.end();
+  return JSONVar();
 }
 
 JSONVar getArtist(String id) {
@@ -356,16 +336,16 @@ JSONVar getArtist(String id) {
   int responseCode = httpCom.GET();
   Serial.print("Artist ");
   Serial.println(responseCode);
-  Serial.println(url);
+  //Serial.println(url);
   if (responseCode == 200) {
     String response = httpCom.getString();
     //Serial.println(response);
     JSONVar doc = JSON.parse(response);
     httpCom.end();
     return doc;
-  } else {
-    httpCom.end();
   }
+  httpCom.end();
+  return JSONVar();
 }
 
 String getGenre(String id) {
@@ -377,7 +357,7 @@ String getGenre(String id) {
   int responseCode = httpCom.GET();
   Serial.print("Genre ");
   Serial.println(responseCode);
-  Serial.println(url);
+  //Serial.println(url);
   if (responseCode == 200) {
     String response = httpCom.getString();
     httpCom.end();
@@ -385,14 +365,14 @@ String getGenre(String id) {
     response=response.substring(St+10,response.indexOf("]",St));
     response.replace("\"","");
     response.replace(",", ", ");
-    Serial.println(response);
+    //Serial.println(response);
     if (response=="]") {
 	return "";
     }
     return response;
-  } else {
-    httpCom.end();
   }
+  httpCom.end();
+  return "";
 }
 
 
