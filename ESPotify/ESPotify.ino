@@ -18,9 +18,12 @@ const char* ssid = "WI-FI name here";
 const char* password = "WI-FI password here";
 const String SP_DC = "Spotify cookie here";
 
-TaskHandle_t Core0Task;
+const uint16_t Color = TFT_BLACK; //Background
+const uint16_t ActiveColor =TFT_GREEN; //Bars, active icons
+const uint16_t BarColor =TFT_LIGHTGREY; //Backround of bars
+const uint16_t DefaultColor =TFT_WHITE; //Text and default icons
 
-uint16_t Color = TFT_BLACK;
+TaskHandle_t Core0Task;
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -33,7 +36,27 @@ int WifiLook;
 int Tab;
 
 
+bool tft_output_changed(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap) {
+  for (int16_t j = 0; j < h; j++)
+  {
+    for (int16_t i = 0; i < w; i++)
+    {
+      uint16_t color = bitmap[j * w + i]; // Get the color of the current pixel
 
+      if (color == TFT_BLACK) {
+          color = Color;
+      } 
+      else if (color == TFT_WHITE) {
+          color = DefaultColor;
+      } else if (((color << 5) & 0x3F) >= 32) {
+          color = ActiveColor;
+      } else {color=(color >> 8) | (color << 8);}
+
+      tft.drawPixel(x + i, y + j, color);
+    }
+  }
+  return true;
+}
 
 bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap) {
   // Stop further decoding as image is running off bottom of screen
@@ -78,22 +101,22 @@ void makeSlider(int x, int y, int PxLen, int CVal, int MVal, int Vert) {
     } else {
       HalfPxV=HalfPx;
     }
-    tft.fillRect(x, y, 8,PxLen, 0xD69A);
-    tft.fillRect(x, y+PxLen-HalfPx, 8, HalfPx, TFT_GREEN);
+    tft.fillRect(x, y, 8,PxLen, BarColor);
+    tft.fillRect(x, y+PxLen-HalfPx, 8, HalfPx, ActiveColor);
     if (HalfPx > 2) {
-      tft.drawPixel(x, y + PxLen - HalfPx, 0xD69A);
-      tft.drawPixel(x + 7, y + PxLen - HalfPx, 0xD69A);
+      tft.drawPixel(x, y + PxLen - HalfPx, BarColor);
+      tft.drawPixel(x + 7, y + PxLen - HalfPx, BarColor);
     }
   } else {
     if (HalfPx == HalfPxH) {
       return;
     }
     HalfPxH=HalfPx;
-    tft.fillRect(x, y, PxLen, 8, 0xD69A);
-    tft.fillRect(x, y, HalfPx, 8, TFT_GREEN);
+    tft.fillRect(x, y, PxLen, 8, BarColor);
+    tft.fillRect(x, y, HalfPx, 8, ActiveColor);
     if (HalfPx > 2) {
-      tft.drawPixel(x + HalfPx - 1, y, 0xD69A);
-      tft.drawPixel(x + HalfPx - 1, y + 7, 0xD69A);
+      tft.drawPixel(x + HalfPx - 1, y, BarColor);
+      tft.drawPixel(x + HalfPx - 1, y + 7, BarColor);
     }
   }
 
@@ -170,7 +193,9 @@ void OpenInfo() {
 
   if (SPIFFS.exists("/albumArt.jpg") == true) {
     TJpgDec.setJpgScale(4);
+    TJpgDec.setCallback(tft_output);
     TJpgDec.drawFsJpg(9, 14, "/albumArt.jpg");
+    TJpgDec.setCallback(tft_output_changed);
     TJpgDec.setJpgScale(1);
   }
   /*tft.setCursor(104,205);
@@ -187,14 +212,14 @@ char KeyB[30]={'Q','W','E','R','T','Y','U','I','O','P',
 
 void OpenSearch() {
 
-  tft.drawFastHLine(0, 147, 320, TFT_WHITE);
-  tft.drawFastHLine(0, 178, 320, TFT_WHITE);
-  tft.drawFastHLine(0, 209, 320, TFT_WHITE);
+  tft.drawFastHLine(0, 147, 320, DefaultColor);
+  tft.drawFastHLine(0, 178, 320, DefaultColor);
+  tft.drawFastHLine(0, 209, 320, DefaultColor);
     for (int x = 0; x < 9; x++) {
-    tft.drawFastVLine(32+(32*x), 147, 90, TFT_WHITE);
+    tft.drawFastVLine(32+(32*x), 147, 90, DefaultColor);
   }
   for (int x = 0; x < 30; x++) {
-    tft.drawChar(12+32*(x%10),157+31*(x/10),KeyB[x],TFT_WHITE,Color,2);
+    tft.drawChar(12+32*(x%10),157+31*(x/10),KeyB[x],DefaultColor,Color,2);
   }
   tft.setTextSize(1);
 }
@@ -254,7 +279,9 @@ void addResults() {
 
     if (IdTemp!=IdSh[i]) {
       getFile(Sh, "/albumArtS.jpg");
+      TJpgDec.setCallback(tft_output);
       TJpgDec.drawFsJpg(3, 66*i, "/albumArtS.jpg");
+      TJpgDec.setCallback(tft_output_changed);
       SPIFFS.remove("/albumArtS.jpg");
       IdSh[i]=IdTemp;
     } 
@@ -341,7 +368,7 @@ void buildUIFull(int VolPercent) {
   TrackNamePR.replace("é", "e");
 
   tft.setTextDatum(TC_DATUM);
-  tft.setTextColor(TFT_WHITE, Color);
+  tft.setTextColor(DefaultColor, Color);
   tft.setTextSize(2);
   //tft.print(Name);
 
@@ -362,7 +389,9 @@ void buildUIFull(int VolPercent) {
 
   if (SPIFFS.exists("/albumArt.jpg") == true) {
     TJpgDec.setJpgScale(2);
+    TJpgDec.setCallback(tft_output);
     TJpgDec.drawFsJpg(85, 23, "/albumArt.jpg");
+    TJpgDec.setCallback(tft_output_changed);
     TJpgDec.setJpgScale(1);
   }
 
@@ -370,11 +399,11 @@ void buildUIFull(int VolPercent) {
 
 void makeInfoSlider(int y,float val) {
   //Serial.println(val);
-  tft.fillRect(36, y, 2,13, TFT_WHITE);
-  tft.fillRect(282, y, 2,13, TFT_WHITE);
-  tft.fillRect(38, y+5, 244,3, TFT_WHITE);
+  tft.fillRect(36, y, 2,13, DefaultColor);
+  tft.fillRect(282, y, 2,13, DefaultColor);
+  tft.fillRect(38, y+5, 244,3, DefaultColor);
 
-  tft.fillRect(36+(244*val+0.5), y, 4,13, TFT_GREEN);
+  tft.fillRect(36+(244*val+0.5), y, 4,13, ActiveColor);
 }
 
 /*void changeCol(unsigned short ImgArr[], uint16_t ColorCh) {
@@ -412,7 +441,9 @@ void getPic(String url) {
 
   if (SPIFFS.exists("/albumArt.jpg") == true) {
     TJpgDec.setJpgScale(2);
+    TJpgDec.setCallback(tft_output);
     TJpgDec.drawFsJpg(85, 23, "/albumArt.jpg");
+    TJpgDec.setCallback(tft_output_changed);
     TJpgDec.setJpgScale(1);
   }
 }
@@ -494,7 +525,7 @@ void setup() {
   
 
   tft.setCursor(20, 0, 2);
-  tft.setTextColor(TFT_WHITE, Color);
+  tft.setTextColor(DefaultColor, Color);
   tft.setTextSize(1);
 
   //TJpgDec.setJpgScale(2);
@@ -503,7 +534,7 @@ void setup() {
   TJpgDec.setSwapBytes(true);
 
   // The decoder must be given the exact name of the rendering function above
-  TJpgDec.setCallback(tft_output);
+  TJpgDec.setCallback(tft_output_changed);
 
   if (!SPIFFS.begin()) {
     Serial.println("formatting file system");
@@ -557,7 +588,7 @@ void loop() {
     Changed=false;
 
     tft.setTextDatum(TC_DATUM);
-    tft.setTextColor(TFT_WHITE, Color);
+    tft.setTextColor(DefaultColor, Color);
     tft.setTextSize(2);
     //tft.print(Name);
 
@@ -594,7 +625,7 @@ void loop() {
 
   if (Playing) {
     tft.setTextDatum(BR_DATUM);
-    tft.setTextColor(TFT_WHITE, Color);
+    tft.setTextColor(DefaultColor, Color);
     tft.setTextSize(2);
     //tft.print(Name);
     int TimeF = CurrTime - LastMillis + millis() - 20;
@@ -736,11 +767,11 @@ void loop() {
           startSong("track:"+IdSh[0]);
         } else if (x > 295 && x < 316 && y > 23 && y < 44){
           if(sendCommand("add_to_queue",IdSh[0])==200) {
-            tft.setTextColor(TFT_GREEN, Color);
+            tft.setTextColor(ActiveColor, Color);
             tft.setTextSize(3);
             tft.drawString("+", 298, 23, 1);
             tft.setTextSize(1);
-            tft.setTextColor(TFT_WHITE, Color);
+            tft.setTextColor(DefaultColor, Color);
           }
         } else if (x > 295 && x < 316 && y > 43 && y < 64){
           if (tft.readPixel(305,53)) {
@@ -756,11 +787,11 @@ void loop() {
           startSong("track:"+IdSh[1]);
         } else if (x > 295 && x < 316 && y > 89 && y < 110){
           if(sendCommand("add_to_queue",IdSh[1])==200) {
-            tft.setTextColor(TFT_GREEN, Color);
+            tft.setTextColor(ActiveColor, Color);
             tft.setTextSize(3);
             tft.drawString("+", 298, 89, 1);
             tft.setTextSize(1);
-            tft.setTextColor(TFT_WHITE, Color);
+            tft.setTextColor(DefaultColor, Color);
           }
         } else if (x > 295 && x < 316 && y > 109 && y < 130){
           if (tft.readPixel(305,119)) {
